@@ -1,10 +1,13 @@
 from Queues import User_Request_Queue
+from utils import plot_AAoI
+from tqdm import tqdm
 
 class Cached_Content:
     def __init__(self, id, age=0):
         self.id = id
         self.age = age
         self.used = 0
+        self.recent_time_slot = 0 # Record the recent time slot when the content is used
     
     def __eq__(self, other:int):
         if self.id == other:
@@ -68,7 +71,7 @@ class SBS:
                     not_update.append(i)
         
         # print the contents to be updated and not to be updated
-        print(f'Update: {update}, Not Update: {not_update}')
+        # print(f'Update: {update}, Not Update: {not_update}')
         
         l = -1
         min_value = 100
@@ -101,19 +104,30 @@ class SBS:
 
         return mu, alpha
 
-def Decision_Making(mbs, sbs, num_time_slots):
+def Decision_Making(mbs, sbs, num_time_slots, method='MA'):
     update_id = 0
     reward = 0
+    arr_aoi_ages = []
+    arr_aoi_requests = []
+    sum_arr_aoi_ages = 1
+    sum_arr_aoi_requests = 1 # to avoid zero division
+    arr_aoi = []
 
     time_slot = 0
     epoch = 0
-    while time_slot < num_time_slots:
+    num_epochs = 50000
+
+    pbar = tqdm(total=num_epochs)
+    while epoch < num_epochs:
+        tqdm.update(pbar, epoch)
         replace_id = mbs.decide(sbs, update_id, reward)
-        print('----------------------------------------------------------------')
-        print(f'Epoch: {epoch:3}, Update id: {update_id:3}, Replace id: {replace_id:3}')
+        # print('----------------------------------------------------------------')
+        # print(f'Epoch: {epoch:3}, Update id: {update_id:3}, Replace id: {replace_id:3}')
 
         if sbs.replace(update_id, replace_id):
-            print("Cached Content: ", [content.id for content in sbs.cache])
+            pass
+            # print(f'Update_id: {update_id} is replaced by {replace_id}')
+            # print(f'Age of update_id: {sbs.cache[sbs.cache.index(update_id)].age}')
         else:
             print('Some problems occur...')
 
@@ -121,10 +135,19 @@ def Decision_Making(mbs, sbs, num_time_slots):
         alpha = 1
         reward = 0
 
+        arr_aoi_ages.append(sbs.user_request.queue[mu] * sbs.cache[sbs.cache.index(mu)].age)
+        arr_aoi_requests.append(sbs.user_request.queue[mu])
+        sum_arr_aoi_ages += sbs.user_request.queue[mu] * sbs.cache[sbs.cache.index(mu)].age
+        sum_arr_aoi_requests += sbs.user_request.queue[mu]
+        arr_aoi.append(sum_arr_aoi_ages / sum_arr_aoi_requests)
+        # print('----------------------------------------------------------------')
+        # print(f'Age: [{sbs.cache[0].age}, {sbs.cache[1].age}, {sbs.cache[2].age}, {sbs.cache[3].age}, {sbs.cache[4].age}]')
+        # print(f'Used: [{sbs.cache[0].used}, {sbs.cache[1].used}, {sbs.cache[2].used}, {sbs.cache[3].used}, {sbs.cache[4].used}]')
         sbs.user_request.service(mu)
         sbs.cache[sbs.cache.index(mu)].used += 1
+        sbs.cache[sbs.cache.index(mu)].recent_time_slot = time_slot
 
-        while time_slot < num_time_slots:
+        while epoch < num_epochs:
             if alpha == 1:
                 sbs.cache[sbs.cache.index(update_id)].age = 0
             sbs.step()
@@ -140,5 +163,8 @@ def Decision_Making(mbs, sbs, num_time_slots):
                 update_id = mu
                 break
             else:
+                arr_aoi.append(sbs.user_request.queue[mu] * sbs.cache[sbs.cache.index(mu)].age)
                 sbs.user_request.service(mu)
                 sbs.cache[sbs.cache.index(mu)].used += 1
+    plot_AAoI(arr_aoi, time_slot, window=800)
+    return arr_aoi
