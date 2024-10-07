@@ -7,14 +7,14 @@ class MBS:
     def __init__(self):
         pass
     
-    def decide(self, sbs, id, reward, method='MA'):
+    def decide(self, sbs, id, reward, time_slot=0, method='MA'):
         
-        ma_id = self.MA(sbs)
-        lru_id = self.LRU(sbs)
         if method == 'MA':
-            return ma_id
+            return self.MA(sbs)
         elif method == 'LRU':
-            return lru_id
+            return self.LRU(sbs)
+        elif method == 'LFU':
+            return self.LFU(sbs)
         else:
             return -1
 
@@ -35,3 +35,17 @@ class MBS:
                 recent_time_slot = sbs.cache[i].recent_time_slot
                 lru_id = i
         return sbs.cache[lru_id].id
+    
+    def LFU(self, sbs):
+        arr_freq = [len(sbs.cache[i].used) for i in range(sbs.cache_size)]
+        min_freq = min(arr_freq)
+
+        arr_min_freq_id = [i for i in range(sbs.cache_size) if len(sbs.cache[i].used) == min_freq]
+
+        lfu_id = arr_min_freq_id[0]
+        least_order = sbs.cache[arr_min_freq_id[0]].order
+        for i in range(len(arr_min_freq_id)):
+            if sbs.cache[arr_min_freq_id[i]].order < least_order:
+                lfu_id = arr_min_freq_id[i]
+                least_order = sbs.cache[arr_min_freq_id[i]].order
+        return sbs.cache[lfu_id].id
