@@ -7,7 +7,7 @@ class User_Request_Queue:
         self.queue = [0 for i in range(num_content)]
 
         self.arr_prob = Zipf_dist(num_content, 1)
-        self.arr_content_per_slot = 20
+        self.arr_content_per_slot = 10
 
         self.capacity = 50000
 

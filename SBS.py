@@ -8,7 +8,9 @@ class Cached_Content:
         self.age = age
         self.used = [] # Record the time slot when the content is used
         self.recent_time_slot = 0 # Record the recent time slot when the content is used
+        
         self.order = order
+        self.LFU_window = 10
     
     def __eq__(self, other:int):
         if self.id == other:
@@ -22,6 +24,7 @@ class Cached_Content:
         for i in range(len(self.used)):
             if self.used[i] < t:
                 self.used.pop(i)
+                break
     
     def step(self):
         self.age += 1
@@ -50,6 +53,8 @@ class SBS:
         self.pseudo_queues = [0 for i in range(self.num_content)]
 
     def replace(self, update_id, remove_id, time_slot):
+        if remove_id == -1:
+            return 1
         for i in range(self.cache_size):
             if self.cache[i].id == remove_id:
                 self.cache[i] = Cached_Content(update_id, 0, time_slot)
@@ -63,9 +68,6 @@ class SBS:
         
         self.pseudo_queue_u = max(self.pseudo_queue_u - self.D, 0) + self.last_alpha
         self.pseudo_queues = [max(self.pseudo_queues[i] - self.user_request.arr_prob[i], 0) + self.user_request.queue[i] for i in range(self.num_content)]
-
-        for i in range(self.cache_size):
-            self.cache[i].step()
 
     def decide(self):
         # Grouping the contents to be updated and not to be updated
@@ -129,7 +131,7 @@ def Decision_Making(mbs, sbs, num_epochs, method='MA'):
     pbar = tqdm(total=num_epochs)
     while epoch < num_epochs:
         tqdm.update(pbar, epoch)
-        replace_id = mbs.decide(sbs, update_id, reward, method=method)
+        replace_id = mbs.decide(sbs, None, method=method)
         # print('----------------------------------------------------------------')
         # print(f'Epoch: {epoch:3}, Update id: {update_id:3}, Replace id: {replace_id:3}')
 
@@ -158,11 +160,11 @@ def Decision_Making(mbs, sbs, num_epochs, method='MA'):
         sbs.cache[sbs.cache.index(mu)].recent_time_slot = time_slot
 
         for cache in sbs.cache:
-            cache.LFU_update(time_slot-sbs.num_content)
+            cache.LFU_update(time_slot-cache.LFU_window)
 
         while epoch < num_epochs:
             if alpha == 1:
-                sbs.cache[sbs.cache.index(update_id)].age = 0
+                sbs.cache[sbs.cache.index(update_id)].age = 1
             sbs.step()
 
             reward = reward + sbs.user_request.queue[mu] * (sbs.cache[sbs.cache.index(update_id)].id * (1 - alpha) + 1)

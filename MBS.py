@@ -3,11 +3,18 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
+from Network import DQN
+
 class MBS:
-    def __init__(self):
-        pass
-    
-    def decide(self, sbs, id, reward, time_slot=0, method='MA'):
+    def __init__(self, num_content, cache_size):
+        self.num_content = num_content
+        self.cache_size = cache_size
+        self.agent = DQN(num_content, cache_size)
+
+    def initialize(self):
+        self.agent = DQN(self.num_content, self.cache_size)
+
+    def decide(self, sbs, state, time_slot=0, method='MA'):
         
         if method == 'MA':
             return self.MA(sbs)
@@ -15,6 +22,8 @@ class MBS:
             return self.LRU(sbs)
         elif method == 'LFU':
             return self.LFU(sbs)
+        elif method == 'RL':
+            return self.agent.choose_action(state)
         else:
             return -1
 
