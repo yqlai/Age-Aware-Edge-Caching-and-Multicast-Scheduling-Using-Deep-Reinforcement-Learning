@@ -42,6 +42,7 @@ class SBS:
 
         self.last_alpha = 0
         self.D = 0.3
+        self.d = 15
         self.V = 0.5
         
     
@@ -67,14 +68,14 @@ class SBS:
             content.step()
         
         self.pseudo_queue_u = max(self.pseudo_queue_u - self.D, 0) + self.last_alpha
-        self.pseudo_queues = [max(self.pseudo_queues[i] - self.user_request.arr_prob[i], 0) + self.user_request.queue[i] for i in range(self.num_content)]
+        self.pseudo_queues = [max(self.pseudo_queues[i] - self.d, 0) + self.user_request.queue[i] for i in range(self.num_content)]
 
     def decide(self):
         # Grouping the contents to be updated and not to be updated
         update = []
         not_update = []
         for i in range(self.num_content):
-            if not i in self.cache:
+            if not (i in self.cache):
                 update.append(i)
             else:
                 if self.pseudo_queue_u < self.V * self.user_request.queue[i] * self.cache[self.cache.index(i)].age:
@@ -113,18 +114,23 @@ class SBS:
         else:
             mu = m
             alpha = 0
+        # print(f'Left side: {left_side}, Right side: {right_side} mu = {mu}, alpha = {alpha}')
+        # print(self.user_request.queue[m], self.V, self.cache[self.cache.index(m)].age, self.pseudo_queues[m], self.user_request.queue[l], self.V, self.pseudo_queues[l])
 
         return mu, alpha
 
 def Decision_Making(mbs, sbs, num_epochs, method='MA'):
     update_id = 0
     reward = 0
+
     arr_aoi_ages = []
     arr_aoi_requests = []
     sum_arr_aoi_ages = 1
     sum_arr_aoi_requests = 1 # to avoid zero division
     arr_aoi = []
 
+    num_update = 0
+    update_rate_upper_bound = 0.3
     time_slot = 0
     epoch = 0
 
@@ -165,6 +171,7 @@ def Decision_Making(mbs, sbs, num_epochs, method='MA'):
         while epoch < num_epochs:
             if alpha == 1:
                 sbs.cache[sbs.cache.index(update_id)].age = 1
+            sbs.last_alpha = alpha
             sbs.step()
 
             reward = reward + sbs.user_request.queue[mu] * (sbs.cache[sbs.cache.index(update_id)].id * (1 - alpha) + 1)
@@ -172,12 +179,17 @@ def Decision_Making(mbs, sbs, num_epochs, method='MA'):
 
             mu, alpha = sbs.decide()
 
-            if not mu in sbs.cache:
+            if (not method == 'RL') and alpha == 1 and mu in sbs.cache:
+                if (num_update / time_slot) >= update_rate_upper_bound:
+                    alpha = 0
+
+            if alpha == 1:
                 time_slot_k = time_slot
                 epoch += 1
                 update_id = mu
+                num_update += 1
                 break
-            else:
+            if alpha == 0:
                 arr_aoi_ages.append(sbs.user_request.queue[mu] * sbs.cache[sbs.cache.index(mu)].age)
                 arr_aoi_requests.append(sbs.user_request.queue[mu])
                 sum_arr_aoi_ages += sbs.user_request.queue[mu] * sbs.cache[sbs.cache.index(mu)].age
@@ -185,5 +197,12 @@ def Decision_Making(mbs, sbs, num_epochs, method='MA'):
                 arr_aoi.append(sum_arr_aoi_ages / sum_arr_aoi_requests)
                 sbs.user_request.service(mu)
                 sbs.cache[sbs.cache.index(mu)].used.append(time_slot)
+            else:
+                print(f'Invalid alpha value: {alpha}')
+            
     # plot_AAoI(arr_aoi, time_slot, window=800)
+    print()
+    print(f'Update rate: {num_update / time_slot}')
+    sbs.user_request.display()
+    
     return arr_aoi

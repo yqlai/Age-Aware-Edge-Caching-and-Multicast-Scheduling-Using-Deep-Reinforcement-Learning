@@ -16,6 +16,9 @@ class User_Request_Queue:
 
     def service(self, content_id):
         self.queue[content_id] = 0
+
+    def display(self):
+        print(self.queue)
     
     def step(self):
         arrival_contents = np.random.choice(range(self.num_content), size=self.arr_content_per_slot, p=self.arr_prob)

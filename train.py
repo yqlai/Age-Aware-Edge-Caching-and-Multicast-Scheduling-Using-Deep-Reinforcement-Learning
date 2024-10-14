@@ -71,8 +71,13 @@ def train(mbs, sbs, num_epoch):
             mbs.agent.store_transition(previous_state, arr_actions[-2], reward, current_state)
         mbs.agent.learn()
         
+        print(f'Cache content(before): {[c.id for c in sbs.cache]}')
         if not sbs.replace(update_id, replace_id, time_slot):
             print('Some problems occur...')
+            print(f'Update_id: {update_id} is replaced by {replace_id}')
+            print(f'Cache content(after): {[c.id for c in sbs.cache]}')
+        else:
+            print('Succeed')
         
         mu = update_id
         alpha = 1
