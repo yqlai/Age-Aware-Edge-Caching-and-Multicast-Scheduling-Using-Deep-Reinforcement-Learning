@@ -35,7 +35,8 @@ def train(mbs, sbs, num_epoch):
     previous_state = np.zeros(sbs.num_content + 2*(sbs.cache_size+1))
     current_state = sbs.user_request.queue + [c.age for c in sbs.cache] + [c.id for c in sbs.cache] + [update_id, reward]
 
-
+    num_update = 0
+    update_rate_upper_bound = 0.3
     time_slot = 0
     time_slot_k = 0
     epoch = 0
@@ -125,14 +126,13 @@ def train(mbs, sbs, num_epoch):
             time_slot += 1
             
             mu, alpha = sbs.decide()
-            # print(f'mu: {mu}, alpha: {alpha}')
-            # print('----------------------------------------------------------------')
             
             # Update the cache from MBS
             if alpha == 1:
                 time_slot_k = time_slot
                 epoch += 1
                 update_id = mu
+                num_update += 1
                 break
             # Multicast the cache content
             else:
@@ -146,5 +146,7 @@ def train(mbs, sbs, num_epoch):
 
                 arr_user_request.append(sum(sbs.user_request.queue)/sbs.num_content)
                 print(arr_user_request)
-    print(arr_user_request)
+
+    print(f'Update rate: {num_update/time_slot}')
+    sbs.user_request.display()
     return arr_aoi, arr_user_request

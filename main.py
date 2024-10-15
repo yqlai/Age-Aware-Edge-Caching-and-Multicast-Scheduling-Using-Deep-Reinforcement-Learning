@@ -50,7 +50,7 @@ if __name__ == '__main__':
         sbs.initialize()
         reward = 0
         time_slot = 0
-        arr_aoi_RL, arr_user_request_RL = train(mbs, sbs, 200)
+        arr_aoi_RL, arr_user_request_RL = train(mbs, sbs, num_epochs)
 
     # Only plot the arr that with True flag
     plot_arrs, plot_labels = [], []
@@ -82,11 +82,6 @@ if __name__ == '__main__':
             plot_arrs.append(arr)
             plot_labels.append(label)
         
-
-    print(arr_user_request_MA)
-    print(arr_user_request_LRU)
-    print(arr_user_request_RL)
-    
     plot_AAoI(plot_arrs, num_epochs, window=100, labels=plot_labels, save=False)
 
     print('End of Simulation')
