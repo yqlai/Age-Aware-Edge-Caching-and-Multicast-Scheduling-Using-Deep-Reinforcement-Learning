@@ -70,7 +70,16 @@ class SBS:
         self.pseudo_queue_u = max(self.pseudo_queue_u - self.D, 0) + self.last_alpha
         self.pseudo_queues = [max(self.pseudo_queues[i] - self.d, 0) + self.user_request.queue[i] for i in range(self.num_content)]
 
-    def decide(self):
+    def decide(self, method=None):
+        if method == 'Cache':
+            num_user_request = self.user_request.queue[self.cache[0].id]
+            mu = self.cache[0].id
+            for i in range(self.cache_size):
+                if self.user_request.queue[self.cache[i].id] > num_user_request:
+                    num_user_request = self.user_request.queue[self.cache[i].id]
+                    mu = self.cache[i].id
+            return mu, 0
+
         # Grouping the contents to be updated and not to be updated
         update = []
         not_update = []
@@ -182,6 +191,9 @@ def Decision_Making(mbs, sbs, num_epochs, method='MA'):
             if (not method == 'RL') and alpha == 1 and mu in sbs.cache:
                 if (num_update / time_slot) >= update_rate_upper_bound:
                     alpha = 0
+            elif (not method == 'RL') and (alpha == 1) and (not mu in sbs.cache):
+                if (num_update / time_slot) >= update_rate_upper_bound:
+                    mu, alpha = sbs.decide(method='Cache') # For mu be in the cache
 
             if alpha == 1:
                 time_slot_k = time_slot
