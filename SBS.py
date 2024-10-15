@@ -138,6 +138,8 @@ def Decision_Making(mbs, sbs, num_epochs, method='MA'):
     sum_arr_aoi_requests = 1 # to avoid zero division
     arr_aoi = []
 
+    arr_user_request = []
+
     num_update = 0
     update_rate_upper_bound = 0.3
     time_slot = 0
@@ -209,6 +211,9 @@ def Decision_Making(mbs, sbs, num_epochs, method='MA'):
                 arr_aoi.append(sum_arr_aoi_ages / sum_arr_aoi_requests)
                 sbs.user_request.service(mu)
                 sbs.cache[sbs.cache.index(mu)].used.append(time_slot)
+
+                arr_user_request.append(sum(sbs.user_request.queue)/sbs.num_content)
+
             else:
                 print(f'Invalid alpha value: {alpha}')
             
@@ -217,4 +222,4 @@ def Decision_Making(mbs, sbs, num_epochs, method='MA'):
     print(f'Update rate: {num_update / time_slot}')
     sbs.user_request.display()
     
-    return arr_aoi
+    return arr_aoi, arr_user_request

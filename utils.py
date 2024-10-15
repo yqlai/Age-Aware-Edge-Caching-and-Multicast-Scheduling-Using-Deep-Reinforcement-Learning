@@ -18,7 +18,7 @@ def Lyapunov_Function(zu, zi, n):
 def Lyapunov_Drift(L, L_past):
     return L - L_past
 
-def plot_AAoI(arrs_aoi, T, window=1, labels=None):
+def plot_AAoI(arrs_aoi, T, window=1, labels=None, save=False):
 
     # Let L be the minimum length of all the arrays
     L = min([len(arr) for arr in arrs_aoi])
@@ -39,5 +39,8 @@ def plot_AAoI(arrs_aoi, T, window=1, labels=None):
     plt.title('Average Age of Information vs Time')
     
     plt.legend(title='Method')
+
+    if save:
+        plt.savefig('AAoI.png')
     
     plt.show()

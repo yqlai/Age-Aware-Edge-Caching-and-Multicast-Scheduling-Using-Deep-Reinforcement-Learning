@@ -28,6 +28,8 @@ def train(mbs, sbs, num_epoch):
     sum_arr_aoi_requests = 1
     arr_aoi = []
 
+    arr_user_request = []
+
     arr_actions = []
 
     previous_state = np.zeros(sbs.num_content + 2*(sbs.cache_size+1))
@@ -46,10 +48,11 @@ def train(mbs, sbs, num_epoch):
         if update_id in sbs.cache:
             replace_id = sbs.cache.index(update_id)
             arr_actions.append(replace_id)
+            replace_id = sbs.cache[replace_id].id
         else:
             replace_id = mbs.decide(sbs, current_state, method='RL')
             arr_actions.append(replace_id)
-            replace_id -=1
+            replace_id -= 1
             if replace_id >= 0:
                 replace_id = sbs.cache[replace_id].id
             else:
@@ -71,13 +74,12 @@ def train(mbs, sbs, num_epoch):
             mbs.agent.store_transition(previous_state, arr_actions[-2], reward, current_state)
         mbs.agent.learn()
         
-        print(f'Cache content(before): {[c.id for c in sbs.cache]}')
+        # print(f'Cache content(before): {[c.id for c in sbs.cache]}, Update_id: {update_id}, Replace_id: {replace_id}')
         if not sbs.replace(update_id, replace_id, time_slot):
             print('Some problems occur...')
-            print(f'Update_id: {update_id} is replaced by {replace_id}')
-            print(f'Cache content(after): {[c.id for c in sbs.cache]}')
-        else:
-            print('Succeed')
+        #     print(f'Cache content(after): {[c.id for c in sbs.cache]}')
+        # else:
+        #     print('Succeed')
         
         mu = update_id
         alpha = 1
@@ -141,4 +143,8 @@ def train(mbs, sbs, num_epoch):
                 arr_aoi.append(sum_arr_aoi_ages / sum_arr_aoi_requests)
                 sbs.user_request.service(mu)
                 sbs.cache[sbs.cache.index(mu)].used.append(time_slot)
-    return arr_aoi
+
+                arr_user_request.append(sum(sbs.user_request.queue)/sbs.num_content)
+                print(arr_user_request)
+    print(arr_user_request)
+    return arr_aoi, arr_user_request
